@@ -1,285 +1,75 @@
-import java.io.BufferedReader;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.IOException;
+import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class Part2 {
-    private static ArrayList<String> instructions = new ArrayList<>();
+    private static HashMap<String, String> wires = new HashMap<>();
 
+    public static void main(String[] args) throws IOException{
+        List<String> lines = Files.readAllLines(Paths.get(new File("").getAbsolutePath() + "\\src\\main\\resources\\input.txt"));
 
-    public static void main(String[] args) {
-        Queue<String> queue = new LinkedList<>();
-        HashMap<String, Integer> wires = new HashMap<>();
-        initialize();
-        instructions.remove("19138 -> b");
-        instructions.add("16076 -> b");
-
-        // Set up first wires
-        for (int i = 0; i < instructions.size(); i++) {
-            String instruction = instructions.get(i);
-            Pattern pattern = Pattern.compile("^([0-9]+) -> ([a-z]+)");
-            Matcher m = pattern.matcher(instruction);
-            while (m.find()) {
-                wires.put(m.group(2), Integer.parseInt(m.group(1)));
-                instructions.remove(i);
-            }
+        for (String line : lines) {
+            String[] splitLine = line.split(" -> ");
+            wires.put(splitLine[1], splitLine[0]);
         }
+        
+        // I should figure out how to generate the value to overwrite "b" with at runtime by running Part 1 first.
+        wires.put("b", "16076");
 
-        while (instructions.size() > 0) {
-            queue.addAll(wires.keySet());
-
-            // Known wires being modified by values
-            while (!queue.isEmpty()) {
-                String currentWireName = queue.poll();
-                int currentWireValue = wires.get(currentWireName);
-                for (int i = 0; i < instructions.size(); i++) {
-                    String instruction = instructions.get(i);
-                    Pattern pattern = Pattern.compile("^" + currentWireName + " (.*) ([0-9]*) -> ([a-z]+)");
-                    Matcher m = pattern.matcher(instruction);
-                    while (m.find()) {
-                        String operation = m.group(1);
-                        int adjustmentValue = Integer.parseInt(m.group(2));
-                        String targetWireName = m.group(3);
-                        int operationResult;
-                        switch (operation) {
-                            case "LSHIFT":
-                                operationResult = currentWireValue << adjustmentValue;
-                                break;
-                            case "RSHIFT":
-                                operationResult = currentWireValue >>> adjustmentValue;
-                                break;
-                            case "AND":
-                                operationResult = currentWireValue & adjustmentValue;
-                                break;
-                            default:
-                                operationResult = currentWireValue | adjustmentValue;
-                                break;
-                        }
-                        wires.put(targetWireName, operationResult);
-                        if (!queue.contains(targetWireName)) {
-                            queue.add(targetWireName);
-                        }
-
-                        instructions.remove(i);
-                        i++;
-                    }
-                }
-            }
-
-            queue.addAll(wires.keySet());
-
-            // Known wires being modified by other known wires
-            while (!queue.isEmpty()) {
-                String currentWireName = queue.poll();
-                int currentWireValue = wires.get(currentWireName);
-                for (int i = 0; i < instructions.size(); i++) {
-                    String instruction = instructions.get(i);
-                    Pattern pattern = Pattern.compile("^" + currentWireName + " (.*) ([a-z]*) -> ([a-z]+)");
-                    Matcher m = pattern.matcher(instruction);
-                    while (m.find()) {
-                        String operation = m.group(1);
-                        String otherWire = m.group(2);
-                        String targetWireName = m.group(3);
-                        if (!wires.keySet().contains(otherWire)) {
-                            continue;
-                        }
-                        int adjustmentValue = wires.get(otherWire);
-                        int operationResult;
-                        switch (operation) {
-                            case "LSHIFT":
-                                operationResult = currentWireValue << adjustmentValue;
-                                break;
-                            case "RSHIFT":
-                                operationResult = currentWireValue >>> adjustmentValue;
-                                break;
-                            case "AND":
-                                operationResult = currentWireValue & adjustmentValue;
-                                break;
-                            default:
-                                operationResult = currentWireValue | adjustmentValue;
-                                break;
-                        }
-                        wires.put(targetWireName, operationResult);
-                        if (!queue.contains(targetWireName)) {
-                            queue.add(targetWireName);
-                        }
-
-                        instructions.remove(i);
-                        i++;
-                    }
-                }
-            }
-
-            queue.addAll(wires.keySet());
-
-            // Values being modified by known wires
-            while (!queue.isEmpty()) {
-                String currentWireName = queue.poll();
-                for (int i = 0; i < instructions.size(); i++) {
-                    String instruction = instructions.get(i);
-                    Pattern pattern = Pattern.compile("^([0-9]*) ([A-Z]*) " + currentWireName + " -> ([a-z]+)");
-                    Matcher m = pattern.matcher(instruction);
-                    while (m.find()) {
-                        int valueToAdjust = Integer.parseInt(m.group(1));
-                        String operation = m.group(2);
-                        String targetWireName = m.group(3);
-                        int adjustmentValue = wires.get(currentWireName);
-                        int operationResult;
-                        switch (operation) {
-                            case "LSHIFT":
-                                operationResult = valueToAdjust << adjustmentValue;
-                                break;
-                            case "RSHIFT":
-                                operationResult = valueToAdjust >>> adjustmentValue;
-                                break;
-                            case "AND":
-                                operationResult = valueToAdjust & adjustmentValue;
-                                break;
-                            default:
-                                operationResult = valueToAdjust | adjustmentValue;
-                                break;
-                        }
-                        wires.put(targetWireName, operationResult);
-                        if (!queue.contains(targetWireName)) {
-                            queue.add(targetWireName);
-                        }
-
-                        instructions.remove(i);
-                        i++;
-                    }
-                }
-            }
-
-            queue.addAll(wires.keySet());
-
-            // Other wires being modified by known wires
-            while (!queue.isEmpty()) {
-                String currentWireName = queue.poll();
-                for (int i = 0; i < instructions.size(); i++) {
-                    String instruction = instructions.get(i);
-                    Pattern pattern = Pattern.compile("^([a-z]*) ([A-Z]*) " + currentWireName + " -> ([a-z]+)");
-                    Matcher m = pattern.matcher(instruction);
-                    while (m.find()) {
-                        String wireToAdjust = m.group(1);
-                        if (!wires.keySet().contains(wireToAdjust)) {
-                            continue;
-                        }
-                        int valueToAdjust = wires.get(wireToAdjust);
-                        String operation = m.group(2);
-                        String targetWireName = m.group(3);
-                        int adjustmentValue = wires.get(currentWireName);
-                        int operationResult;
-                        switch (operation) {
-                            case "LSHIFT":
-                                operationResult = valueToAdjust << adjustmentValue;
-                                break;
-                            case "RSHIFT":
-                                operationResult = valueToAdjust >>> adjustmentValue;
-                                break;
-                            case "AND":
-                                operationResult = valueToAdjust & adjustmentValue;
-                                break;
-                            default:
-                                operationResult = valueToAdjust | adjustmentValue;
-                                break;
-                        }
-                        wires.put(targetWireName, operationResult);
-                        if (!queue.contains(targetWireName)) {
-                            queue.add(targetWireName);
-                        }
-
-                        instructions.remove(i);
-                        i++;
-                    }
-                }
-            }
-
-            queue.addAll(wires.keySet());
-
-            // Known wires being inverted
-            while (!queue.isEmpty()) {
-                String currentWireName = queue.poll();
-                for (int i = 0; i < instructions.size(); i++) {
-                    String instruction = instructions.get(i);
-                    Pattern pattern = Pattern.compile("^NOT " + currentWireName + " -> ([a-z]+)");
-                    Matcher m = pattern.matcher(instruction);
-                    while (m.find()) {
-                        String targetWireName = m.group(1);
-                        wires.put(targetWireName, ~wires.get(currentWireName));
-                        if (!queue.contains(targetWireName)) {
-                            queue.add(targetWireName);
-                        }
-
-                        instructions.remove(i);
-                        i++;
-                    }
-                }
-            }
-
-            queue.addAll(wires.keySet());
-
-            // Known wires giving signal to new wires
-            while (!queue.isEmpty()) {
-                String currentWireName = queue.poll();
-                for (int i = 0; i < instructions.size(); i++) {
-                    String instruction = instructions.get(i);
-                    Pattern pattern = Pattern.compile("^" + currentWireName + " -> ([a-z]+)");
-                    Matcher m = pattern.matcher(instruction);
-                    while (m.find()) {
-                        String targetWireName = m.group(1);
-                        wires.put(targetWireName, wires.get(currentWireName));
-                        if (!queue.contains(targetWireName)) {
-                            queue.add(targetWireName);
-                        }
-
-                        instructions.remove(i);
-                        i++;
-                    }
-                }
-            }
-        }
-
+        int valueOfWire = findValueOfWire("a");
+        System.out.println(valueOfWire);
         System.out.println("Done!");
-        System.out.println("Value of Wire \"a\": " + wires.get("a"));
     }
 
-
-
-
-    private static void initialize() {
-        // The name of the file to open.
-        String fileName = "C:\\Users\\UvulaBob\\IdeaProjects\\AoC2015\\Java\\Day7\\src\\main\\resources\\input.txt";
-
-        // This will reference one line at a time
-        String line;
+    private static int findValueOfWire(String wire) {
+        String wireValue;
 
         try {
-            // FileReader reads text files in the default encoding.
-            FileReader fileReader =
-                    new FileReader(fileName);
+            return Integer.parseInt(wire);
+        } catch (NumberFormatException e) {
+            wireValue = wires.get(wire);
+        }
 
-            // Always wrap FileReader in BufferedReader.
-            BufferedReader bufferedReader =
-                    new BufferedReader(fileReader);
+        try {
+            return Integer.parseInt(wireValue);
+        } catch (NumberFormatException e) {
+            int result = doInstruction(wireValue);
+            wires.put(wire, String.valueOf(result));
+            return result;
+        }
+    }
 
-            while ((line = bufferedReader.readLine()) != null) {
-                instructions.add(line);
+    private static int doInstruction(String instruction) {
+        String[] splitInstruction = instruction.split(" ");
+        if (splitInstruction.length == 1) {
+            return findValueOfWire(splitInstruction[0]);
+        }
+
+        if (splitInstruction.length == 2) {
+            int operand;
+            try {
+                operand = Integer.parseInt(splitInstruction[1]);
+            } catch (NumberFormatException e) {
+                operand = findValueOfWire(splitInstruction[1]);
             }
+            return ~operand & 65535;
+        }
 
-            // Always close files.
-            bufferedReader.close();
-        } catch (FileNotFoundException ex) {
-            System.out.println(
-                    "Unable to open file '" +
-                            fileName + "'");
-        } catch (IOException ex) {
-            System.out.println(
-                    "Error reading file '"
-                            + fileName + "'");
-
+        String operation = splitInstruction[1];
+        int firstValue = findValueOfWire(splitInstruction[0]);
+        int secondValue = findValueOfWire(splitInstruction[2]);
+        switch (operation) {
+            case "AND":
+                return firstValue & secondValue;
+            case "OR":
+                return firstValue | secondValue;
+            case "LSHIFT":
+                return firstValue << secondValue;
+            default:
+                return firstValue >> secondValue;
         }
     }
 }
