@@ -1,7 +1,7 @@
-import java.io.BufferedReader;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.IOException;
+import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.List;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -12,10 +12,11 @@ import com.fasterxml.jackson.databind.node.TextNode;
 
 
 public class Part2 {
-    private static String input = "";
     private static int total = 0;
-    public static void main(String[] args) {
-        initialize();
+
+    public static void main(String[] args) throws IOException{
+        List<String> lines = Files.readAllLines(Paths.get(new File("").getAbsolutePath() + "\\src\\main\\resources\\input.txt"));
+        String input = lines.get(0);
         ObjectMapper mapper = new ObjectMapper();
         JsonNode rootNode;
         try {
@@ -54,41 +55,6 @@ public class Part2 {
             for (JsonNode childNode : node) {
                 processNode(childNode);
             }
-        }
-    }
-
-    private static void initialize() {
-        // The name of the file to open.
-        String fileName = "C:\\Users\\UvulaBob\\IdeaProjects\\AoC2015\\Java\\Day12\\src\\main\\resources\\input.txt";
-
-        // This will reference one line at a time
-        String line;
-
-        try {
-            // FileReader reads text files in the default encoding.
-            FileReader fileReader =
-                    new FileReader(fileName);
-
-            // Always wrap FileReader in BufferedReader.
-            BufferedReader bufferedReader =
-                    new BufferedReader(fileReader);
-
-            while ((line = bufferedReader.readLine()) != null) {
-                input += line;
-            }
-
-
-            // Always close files.
-            bufferedReader.close();
-        } catch (FileNotFoundException ex) {
-            System.out.println(
-                    "Unable to open file '" +
-                            fileName + "'");
-        } catch (IOException ex) {
-            System.out.println(
-                    "Error reading file '"
-                            + fileName + "'");
-
         }
     }
 }
